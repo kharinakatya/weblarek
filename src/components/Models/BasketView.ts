@@ -1,4 +1,3 @@
-// components/Views/BasketView.ts
 import { EventEmitter } from '../base/Events';
 import { cloneTemplate } from '../../utils/utils';
 import { Basket } from '../Models/Basket';

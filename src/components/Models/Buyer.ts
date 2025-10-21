@@ -22,7 +22,7 @@ export class Buyer {
     this._address = address;
   }
 
-  getData(): IBuyer {
+  getBuyerData(): IBuyer {
     return {
       payment: this._payment as TPayment,
       email: this._email,

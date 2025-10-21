@@ -16,11 +16,11 @@ export class ProductCatalog {
     return this._items.find(item => item.id === id);
   }
 
-  setPreview(item: IProduct): void {
+  setSelectedProduct(item: IProduct): void {
     this._preview = item;
   }
 
-  getPreview(): IProduct | null {
+  getSelectedProduct(): IProduct | null {
     return this._preview;
   }
 }

@@ -1,3 +1,4 @@
+//CommunicationLayer.ts - связь с сервером
 import { IApi } from '../../types/index';
 import { IProduct } from '../../types/index';
 

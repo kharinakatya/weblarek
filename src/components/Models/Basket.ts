@@ -1,3 +1,4 @@
+//Basket.ts
 import { IProduct } from '../../types/index';
 
 export class Basket {
