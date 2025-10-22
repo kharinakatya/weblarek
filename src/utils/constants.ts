@@ -1,4 +1,3 @@
-//constants.ts
 /* Константа для получения полного пути для сервера. Для выполнения запроса 
 необходимо к API_URL добавить только ендпоинт. */
 export const API_URL = `${import.meta.env.VITE_API_ORIGIN}/api/weblarek`; 
@@ -20,3 +19,4 @@ export const categoryMap = {
 export const settings = {
 
 };
+
