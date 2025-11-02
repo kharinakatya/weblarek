@@ -1,3 +1,4 @@
+//Api.ts
 type ApiPostMethods = 'POST' | 'PUT' | 'DELETE';
 
 export class Api {

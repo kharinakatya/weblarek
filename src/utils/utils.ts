@@ -1,3 +1,4 @@
+//utils.ts
 export function pascalToKebab(value: string): string {
     return value.replace(/([a-z0–9])([A-Z])/g, "$1-$2").toLowerCase();
 }
@@ -44,13 +45,15 @@ export function ensureElement<T extends HTMLElement>(selectorElement: SelectorEl
     throw new Error('Unknown selector element');
 }
 
-export function cloneTemplate<T extends HTMLElement>(query: string | HTMLTemplateElement): T {
-    const template = ensureElement(query) as HTMLTemplateElement;
-    if (!template.content.firstElementChild) {
-        throw new Error(`Template ${query} has no content`);
-    }
-    return template.content.firstElementChild.cloneNode(true) as T;
+export function cloneTemplate<T extends HTMLElement>(selector: string): T {
+  console.log(`Cloning template with selector: ${selector}`); // Для отладки — удалите после исправления
+  const template = document.querySelector(selector) as HTMLTemplateElement;
+  if (!template) {
+    throw new Error(`Template with selector ${selector} not found`);
+  }
+  return template.content.firstElementChild!.cloneNode(true) as T;
 }
+
 
 export function bem(block: string, element?: string, modifier?: string): { name: string, class: string } {
     let name = block;

@@ -1,52 +1,140 @@
+// main.ts
 import './scss/styles.scss';
+import { Api } from './components/base/Api';
+import { CommunicationLayer } from './components/Communication/CommunicationLayer';
 import { ProductCatalog } from './components/Models/ProductCatalog';
 import { Basket } from './components/Models/Basket';
 import { Buyer } from './components/Models/Buyer';
-import { CommunicationLayer } from './components/CommunicationLayer';
-import { Api } from './components/base/Api';
 import { API_URL } from './utils/constants';
-import { apiProducts } from './utils/data';
+import { CatalogView } from './components/Views/CatalogView';
+import { ModalView } from './components/Views/ModalView';
+import { BasketView } from './components/Views/BasketView';
+import { OrderFormView } from './components/Views/OrderFormView';
+import { ContactsFormView } from './components/Views/ContactsFormView';
+import { SuccessView } from './components/Views/SuccessView';
+import { HeaderView } from './components/Views/HeaderView';
+import { PreviewCardView } from './components/Views/PreviewCardView';
+import { IProduct } from './types/index';
 
-const api = new Api(API_URL);
-const productCatalog = new ProductCatalog();
-const basket = new Basket();
-const buyer = new Buyer();
-const communicationLayer = new CommunicationLayer(api);
+document.addEventListener('DOMContentLoaded', () => {
+  const catalog = new ProductCatalog();
+  const basket = new Basket();
+  const buyer = new Buyer();
 
-console.log('=== Тестирование ProductCatalog ===');
-productCatalog.setItems(apiProducts.items);
-console.log('Массив товаров из каталога:', productCatalog.getItems());
-const testProduct = productCatalog.getProduct('854cef69-976d-4c2a-a18c-2aa45046c390');
-console.log('Товар по ID:', testProduct);
-productCatalog.setPreview(testProduct!);
-console.log('Товар для превью:', productCatalog.getPreview());
+  const galleryEl = document.querySelector('.gallery') as HTMLElement;
+  const modal = new ModalView();
+  const catalogView = new CatalogView(galleryEl);
+  const basketView = new BasketView();
+  const headerView = new HeaderView();
+  const previewView = new PreviewCardView();
+  const orderFormView = new OrderFormView();
+  const contactsFormView = new ContactsFormView();
+  const successView = new SuccessView();
 
-console.log('=== Тестирование Basket ===');
-basket.addItem(testProduct!);
-console.log('Товары в корзине после добавления:', basket.getItems());
-console.log('Общая стоимость:', basket.getTotalPrice());
-console.log('Количество товаров:', basket.getItemCount());
-console.log('Есть ли товар в корзине:', basket.hasItem('854cef69-976d-4c2a-a18c-2aa45046c390'));
-basket.removeItem(testProduct!);
-console.log('Товары в корзине после удаления:', basket.getItems());
 
-console.log('=== Тестирование Buyer ===');
-buyer.setEmail('test@example.com');
-buyer.setPhone('123456789');
-buyer.setAddress('Test Address');
-buyer.setPayment('cash');
-console.log('Данные покупателя:', buyer.getData());
-console.log('Ошибки валидации (должны быть пустыми):', buyer.validate());
-buyer.clear();
-console.log('Данные после очистки:', buyer.getData());
-console.log('Ошибки валидации после очистки:', buyer.validate());
+  let communicationLayer: CommunicationLayer | null = null;
 
-communicationLayer.getProducts()
-    .then(products => {
-        productCatalog.setItems(products);
-        console.log('=== Данные с сервера ===');
-        console.log('Массив товаров из каталога (с сервера):', productCatalog.getItems());
-    })
-    .catch(error => {
-        console.error('Ошибка при получении товаров с сервера:', error);
-    });
+  catalog.on('catalog:changed', ({ items }) => {
+    catalogView.render(items);
+  });
+
+  basket.on('basket:changed', ({ items }) => {
+    headerView.updateCounter(items.length);
+    if (modal.modalRoot.classList.contains('modal_active') && modal.modalContent && modal.modalContent.id !== 'success') {
+      const total = basket.getTotalPrice();
+      const basketContent = basketView.render(items, total);
+      modal.openContent(basketContent);
+    }
+  });
+
+  buyer.on('buyer:changed', (data) => {
+  });
+
+  catalogView.on('catalog:card-click', ({ product }) => {
+    const previewContent = previewView.render(product)
+    modal.openContent(previewContent);
+  });
+
+  previewView.on('preview:add-to-basket', ({ product }) => {
+    basket.addItem(product);
+    modal.close();
+  });
+
+  basketView.on('basket:remove-item', ({ product }) => {
+    basket.removeItem(product);
+  });
+
+  basketView.on('basket:order-click', () => {
+    const orderContent = orderFormView.render();
+    modal.openContent(orderContent);
+  });
+
+  headerView.on('header:basket-click', () => {
+    const items = basket.getItems();
+    const total = basket.getTotalPrice();
+    const basketContent = basketView.render(items, total);
+    modal.openContent(basketContent);
+  });
+
+  orderFormView.on('order:submit', (data) => {
+    console.log('Submit формы заказа:', data);
+    const errors = orderFormView.validate(data);
+    if (Object.keys(errors).length) {
+      orderFormView.setErrors(errors);
+    } else {
+      buyer.setAddress(data.address);
+      buyer.setPayment(data.payment);
+      console.log('Переход к форме контактов');
+      const contactsContent = contactsFormView.render();
+      modal.openContent(contactsContent);
+    }
+  });
+
+  contactsFormView.on('contacts:submit', async (data) => {
+    console.log('Submit формы контактов:', data);
+    const errors = contactsFormView.validate(data);
+    if (Object.keys(errors).length) {
+      contactsFormView.setErrors(errors);
+    } else {
+      buyer.setEmail(data.email);
+      buyer.setPhone(data.phone);
+      const orderData = {
+        payment: buyer.getData().payment,
+        email: data.email,
+        phone: data.phone,
+        address: buyer.getData().address,
+        total: basket.getTotalPrice(),
+        items: basket.getItems().map(i => i.id)
+      };
+      try {
+        if (communicationLayer) {
+          await communicationLayer.sendOrder(orderData);
+        } else {
+          console.warn('CommunicationLayer не инициализирован');
+        }
+      } catch (err) {
+        console.error('Ошибка отправки заказа:', err);
+        return;
+      }
+      const successContent = successView.render(orderData.total);
+      modal.openContent(successContent);
+      basket.clear();
+      buyer.clear();
+    }
+  });
+
+  successView.on('success:close', () => {
+    modal.close();
+  });
+
+  (async () => {
+    try {
+      const api = new Api(API_URL);
+      communicationLayer = new CommunicationLayer(api);
+      const products = await communicationLayer.fetchProducts();
+      catalog.setItems(products);
+    } catch (error) {
+      console.error('Ошибка:', error);
+    }
+  })();
+});

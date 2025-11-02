@@ -1,26 +1,14 @@
+//ProductCatalog.ts
+import { EventEmitter } from '../base/Events';
 import { IProduct } from '../../types/index';
 
-export class ProductCatalog {
-    private items: IProduct[] = [];
-    private preview: IProduct | null = null;
+export class ProductCatalog extends EventEmitter {
+  private _items: IProduct[] = [];
+  private _preview: IProduct | null = null;
 
-    setItems(items: IProduct[]): void {
-        this.items = items;
-    }
-
-    getItems(): IProduct[] {
-        return this.items;
-    }
-
-    getProduct(id: string): IProduct | undefined {
-        return this.items.find(item => item.id === id);
-    }
-
-    setPreview(product: IProduct): void {
-        this.preview = product;
-    }
-
-    getPreview(): IProduct | null {
-        return this.preview;
-    }
+  setItems(items: IProduct[]): void {
+    this._items = [...items];
+    this.emit('catalog:changed', { items: this._items });
+  }
 }
+

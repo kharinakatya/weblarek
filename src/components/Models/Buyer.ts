@@ -1,59 +1,51 @@
+// Models/Buyer.ts
+import { EventEmitter } from '../base/Events';
 import { IBuyer, TPayment } from '../../types/index';
 
-export class Buyer {
-    private data: IBuyer = {
-        payment: 'card',
-        email: '',
-        phone: '',
-        address: ''
+export class Buyer extends EventEmitter {
+  private _payment: TPayment | null = null;
+  private _address: string = '';
+  private _email: string = '';
+  private _phone: string = '';
+
+  constructor() {
+    super();
+  }
+
+  setPayment(payment: TPayment): void {
+    this._payment = payment;
+    this.emit('buyer:changed', this.getData());
+  }
+
+  setAddress(address: string): void {
+    this._address = address;
+    this.emit('buyer:changed', this.getData());
+  }
+
+  setEmail(email: string): void {
+    this._email = email;
+    this.emit('buyer:changed', this.getData());
+  }
+
+  setPhone(phone: string): void {
+    this._phone = phone;
+    this.emit('buyer:changed', this.getData());
+  }
+
+  clear(): void {
+    this._payment = null;
+    this._address = '';
+    this._email = '';
+    this._phone = '';
+    this.emit('buyer:changed', this.getData());
+  }
+
+  getData(): IBuyer {
+    return {
+      payment: this._payment,
+      address: this._address,
+      email: this._email,
+      phone: this._phone
     };
-
-    setPayment(payment: TPayment): void {
-        this.data.payment = payment;
-    }
-
-    setEmail(email: string): void {
-        this.data.email = email;
-    }
-
-    setPhone(phone: string): void {
-        this.data.phone = phone;
-    }
-
-    setAddress(address: string): void {
-        this.data.address = address;
-    }
-
-    getData(): IBuyer {
-        return { ...this.data };
-    }
-
-    clear(): void {
-        this.data = {
-            payment: 'card',
-            email: '',
-            phone: '',
-            address: ''
-        };
-    }
-
-
-    validate(): Partial<Record<keyof IBuyer, string>> {
-        const errors: Partial<Record<keyof IBuyer, string>> = {};
-
-        if (!this.data.payment) {
-            errors.payment = 'Не выбран вид оплаты';
-        }
-        if (!this.data.email.trim()) {
-            errors.email = 'Укажите email';
-        }
-        if (!this.data.phone.trim()) {
-            errors.phone = 'Укажите телефон';
-        }
-        if (!this.data.address.trim()) {
-            errors.address = 'Укажите адрес доставки';
-        }
-
-        return errors;
-    }
+  }
 }

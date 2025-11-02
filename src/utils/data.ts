@@ -1,3 +1,4 @@
+//data.ts
 export const apiProducts = {
     "total": 10,
     "items": [
