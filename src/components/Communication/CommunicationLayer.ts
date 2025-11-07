@@ -8,7 +8,7 @@ export interface IOrderData {
   phone: string;
   address: string;
   total: number;
-  items: string[];
+  items: string[]; // id товаров
 }
 
 export class CommunicationLayer {

@@ -20,11 +20,27 @@ export class Basket extends EventEmitter {
     this.emit('basket:changed', { items: this._items });
   }
 
+// Basket.ts
 getTotalPrice(): number {
-    return this._items.reduce((total, item) => total + item.price, 0);
-  }
+  return this._items.reduce((total, item) => {
+    const priceNum = typeof item.price === 'number'
+      ? item.price
+      : Number(item.price);
+
+    return total + (isFinite(priceNum) ? priceNum : 0);
+  }, 0);
+}
 
   getItems(): IProduct[] {
     return [...this._items];
   }
+
+isItemInBasket(itemId: string): boolean {
+  return this._items.some(item => item.id === itemId);
+}
+
+hasItem(id: string): boolean {
+  return this._items.some(i => i.id === id);
+}
+
 }

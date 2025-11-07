@@ -14,7 +14,7 @@ import { ContactsFormView } from './components/Views/ContactsFormView';
 import { SuccessView } from './components/Views/SuccessView';
 import { HeaderView } from './components/Views/HeaderView';
 import { PreviewCardView } from './components/Views/PreviewCardView';
-import { IProduct } from './types/index';
+import { CatalogCardView } from './components/Views/CatalogCardView';
 
 document.addEventListener('DOMContentLoaded', () => {
   const catalog = new ProductCatalog();
@@ -26,102 +26,145 @@ document.addEventListener('DOMContentLoaded', () => {
   const catalogView = new CatalogView(galleryEl);
   const basketView = new BasketView();
   const headerView = new HeaderView();
-  const previewView = new PreviewCardView();
   const orderFormView = new OrderFormView();
   const contactsFormView = new ContactsFormView();
   const successView = new SuccessView();
 
+  const api = new Api(API_URL);
+  const communicationLayer = new CommunicationLayer(api);
 
-  let communicationLayer: CommunicationLayer | null = null;
-
-  catalog.on('catalog:changed', ({ items }) => {
-    catalogView.render(items);
+catalog.on('catalog:changed', ({ items }) => {
+  const cardViews = items.map(item => {
+    const card = new CatalogCardView();
+    card.render(item);
+    card.on('catalog:card-click', ({ product }) => {
+      catalog.selectPreview(product);
+    });
+    return card;
   });
+  catalogView.items = cardViews;
+});
 
-  basket.on('basket:changed', ({ items }) => {
-    headerView.updateCounter(items.length);
-    if (modal.modalRoot.classList.contains('modal_active') && modal.modalContent && modal.modalContent.id !== 'success') {
-      const total = basket.getTotalPrice();
-      const basketContent = basketView.render(items, total);
-      modal.openContent(basketContent);
-    }
-  });
-
-  buyer.on('buyer:changed', (data) => {
-  });
+basket.on('basket:changed', ({ items }) => {
+  headerView.updateCounter(items.length);
+  if (modal.isActive && modal.getContentId && modal.getContentId() !== 'success') {
+    modal.updateContent(basketView.render(items, basket.getTotalPrice()));
+  }
+});
 
   catalogView.on('catalog:card-click', ({ product }) => {
-    const previewContent = previewView.render(product)
-    modal.openContent(previewContent);
+    catalog.selectPreview(product);
   });
 
-  previewView.on('preview:add-to-basket', ({ product }) => {
-    basket.addItem(product);
-    modal.close();
+  catalog.on('catalog:preview', ({ product }) => {
+    modal.open(previewView.render(product));
   });
+
+const previewView = new PreviewCardView();
+
+catalog.on('catalog:preview', ({ product }) => {
+  const isInBasket = basket.getItems().some(i => i.id === product.id);
+  modal.open(previewView.render(product, isInBasket));
+});
+
+previewView.on('preview:add-to-basket', ({ product }) => {
+  basket.addItem(product);
+  modal.updateContent(previewView.render(product, true));
+});
+
+previewView.on('preview:remove-from-basket', ({ product }) => {
+  basket.removeItem(product);
+  modal.updateContent(previewView.render(product, false));
+});
 
   basketView.on('basket:remove-item', ({ product }) => {
     basket.removeItem(product);
   });
 
-  basketView.on('basket:order-click', () => {
-    const orderContent = orderFormView.render();
-    modal.openContent(orderContent);
+basketView.on('basket:order-click', () => {
+  const content = orderFormView.render();
+  if (modal.isActive) {
+    modal.updateContent(content);
+  } else {
+    modal.open(content);
+  }
+});
+
+ headerView.on('header:basket-click', () => {
+  modal.open(basketView.render(basket.getItems(), basket.getTotalPrice()));
+});
+
+  orderFormView.on('buyer:change', ({ key, value }) => {
+    buyer.setData(key, value);
   });
 
-  headerView.on('header:basket-click', () => {
-    const items = basket.getItems();
-    const total = basket.getTotalPrice();
-    const basketContent = basketView.render(items, total);
-    modal.openContent(basketContent);
+  contactsFormView.on('buyer:change', ({ key, value }) => {
+    buyer.setData(key, value);
   });
 
-  orderFormView.on('order:submit', (data) => {
-    console.log('Submit формы заказа:', data);
-    const errors = orderFormView.validate(data);
-    if (Object.keys(errors).length) {
-      orderFormView.setErrors(errors);
-    } else {
-      buyer.setAddress(data.address);
-      buyer.setPayment(data.payment);
-      console.log('Переход к форме контактов');
-      const contactsContent = contactsFormView.render();
-      modal.openContent(contactsContent);
-    }
+buyer.on('order:validate', (errors: Record<string, string>) => {
+  const orderErrors: Record<string, string> = {};
+  if (errors.address) orderErrors.address = errors.address;
+  if (errors.payment) orderErrors.payment = errors.payment;
+
+  const contactsErrors: Record<string, string> = {};
+  if (errors.email) contactsErrors.email = errors.email;
+  if (errors.phone) contactsErrors.phone = errors.phone;
+
+  orderFormView.setValidationErrors(orderErrors);
+
+  if (Object.keys(contactsErrors).length > 0) {
+    (contactsFormView as any).setValidationErrors?.(contactsErrors);
+  } else {
+    (contactsFormView as any).clearErrors?.();
+  }
+});
+
+ orderFormView.on('order:submit', ({ data }) => {
+  if (data.address) buyer.setAddress(data.address);
+  if (data.payment) buyer.setPayment(data.payment);
+  modal.open(contactsFormView.render());
+});
+
+contactsFormView.on('contacts:submit', async () => {
+  buyer.setEmail(buyer.getData().email);
+  buyer.setPhone(buyer.getData().phone);
+
+  const allItems = basket.getItems();
+
+  const sellableItems = allItems.filter(i => {
+    const p = typeof i.price === 'number' ? i.price : Number(i.price);
+    return isFinite(p) && p > 0;
   });
 
-  contactsFormView.on('contacts:submit', async (data) => {
-    console.log('Submit формы контактов:', data);
-    const errors = contactsFormView.validate(data);
-    if (Object.keys(errors).length) {
-      contactsFormView.setErrors(errors);
-    } else {
-      buyer.setEmail(data.email);
-      buyer.setPhone(data.phone);
-      const orderData = {
-        payment: buyer.getData().payment,
-        email: data.email,
-        phone: data.phone,
-        address: buyer.getData().address,
-        total: basket.getTotalPrice(),
-        items: basket.getItems().map(i => i.id)
-      };
-      try {
-        if (communicationLayer) {
-          await communicationLayer.sendOrder(orderData);
-        } else {
-          console.warn('CommunicationLayer не инициализирован');
-        }
-      } catch (err) {
-        console.error('Ошибка отправки заказа:', err);
-        return;
-      }
-      const successContent = successView.render(orderData.total);
-      modal.openContent(successContent);
-      basket.clear();
-      buyer.clear();
-    }
-  });
+  const sellableIds = sellableItems.map(i => i.id);
+  const total = basket.getTotalPrice();
+
+  if (sellableIds.length === 0) {
+    modal.open(successView.render(0));
+    basket.clear();
+    buyer.clear();
+    return;
+  }
+
+  const orderData = {
+    payment: buyer.getData().payment,
+    email: buyer.getData().email,
+    phone: buyer.getData().phone,
+    address: buyer.getData().address,
+    total: total,
+    items: sellableIds
+  };
+
+  try {
+    await communicationLayer.sendOrder(orderData);
+    modal.open(successView.render(orderData.total));
+    basket.clear();
+    buyer.clear();
+  } catch (err) {
+    console.error('Ошибка отправки заказа:', err);
+  }
+});
 
   successView.on('success:close', () => {
     modal.close();
@@ -129,8 +172,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   (async () => {
     try {
-      const api = new Api(API_URL);
-      communicationLayer = new CommunicationLayer(api);
       const products = await communicationLayer.fetchProducts();
       catalog.setItems(products);
     } catch (error) {

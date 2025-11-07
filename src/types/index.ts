@@ -1,13 +1,10 @@
 //index.ts
-
 export type ApiPostMethods = 'POST' | 'PUT' | 'DELETE';
-
 export interface IApi {
     get<T extends object>(uri: string): Promise<T>;
     post<T extends object>(uri: string, data: object, method?: ApiPostMethods): Promise<T>;
 }
 
-// Если TPayment не определён, добавьте:
 type TPayment = 'card' | 'cash';
 
 export interface IProduct {
@@ -32,7 +29,7 @@ export interface IOrderData {
   phone: string;
   address: string;
   total: number;
-  items: string[]; // массив id товаров
+  items: string[];
 }
 
 import { CDN_URL } from '../utils/constants';
@@ -69,9 +66,7 @@ function renderBasketIntoNode(rootNode: HTMLElement, basketInstance: Basket) {
       delBtn.addEventListener('click', (ev) => {
         ev.stopPropagation();
         basketInstance.removeItem(item);
-
         renderBasketIntoNode(rootNode, basketInstance);
-
         const counter = document.querySelector('.header__basket-counter') as HTMLElement | null;
         if (counter) counter.textContent = String(basketInstance.getCount());
       });
@@ -83,18 +78,15 @@ function renderBasketIntoNode(rootNode: HTMLElement, basketInstance: Basket) {
   if (priceEl) priceEl.textContent = `${basketInstance.getTotal()} синапсов`;
 }
 
-
   const headerBasketBtn = document.querySelector('.header__basket') as HTMLElement | null;
   if (headerBasketBtn) {
     headerBasketBtn.addEventListener('click', () => {
-
       modal.openTemplate('#basket', (node) => {
         renderBasketIntoNode(node, basket);
 
         const orderBtn = node.querySelector('.basket__button') as HTMLButtonElement | null;
         if (orderBtn) {
           orderBtn.addEventListener('click', () => {
-            // откроем форму оформления
             modal.openTemplate('#order', (orderNode) => {
             });
           });

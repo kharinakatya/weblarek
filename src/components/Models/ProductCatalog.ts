@@ -1,4 +1,4 @@
-//ProductCatalog.ts
+// ProductCatalog.ts
 import { EventEmitter } from '../base/Events';
 import { IProduct } from '../../types/index';
 
@@ -10,5 +10,17 @@ export class ProductCatalog extends EventEmitter {
     this._items = [...items];
     this.emit('catalog:changed', { items: this._items });
   }
-}
 
+  selectPreview(product: IProduct): void {
+    this._preview = product;
+    this.emit('catalog:preview', { product });
+  }
+
+  getItems(): IProduct[] {
+    return [...this._items];
+  }
+
+  getPreview(): IProduct | null {
+    return this._preview;
+  }
+}

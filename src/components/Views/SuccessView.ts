@@ -1,16 +1,25 @@
-//SuccessView.ts
+// SuccessView.ts
 import { EventEmitter } from '../base/Events';
 import { cloneTemplate } from '../../utils/utils';
 
 export class SuccessView extends EventEmitter {
-  render(total: number): HTMLElement {
-    const node = cloneTemplate<HTMLElement>('#success');
-    const descEl = node.querySelector('.order-success__description') as HTMLElement;
-    if (descEl) descEl.textContent = `Списано ${total} синапсов`;
-    const closeBtn = node.querySelector('.order-success__close') as HTMLButtonElement;
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => this.emit('success:close'));
+  private container: HTMLElement;
+  private descEl: HTMLElement;
+  private closeBtn: HTMLButtonElement;
+
+  constructor() {
+    super();
+    this.container = cloneTemplate<HTMLElement>('#success');
+    this.descEl = this.container.querySelector('.order-success__description') as HTMLElement;
+    this.closeBtn = this.container.querySelector('.order-success__close') as HTMLButtonElement;
+    if (this.closeBtn) {
+      this.closeBtn.addEventListener('click', () => this.emit('success:close'));
     }
-    return node;
   }
+
+render(total: number): HTMLElement {
+  if (this.descEl) this.descEl.textContent = `Списано ${total} синапсов`;
+  this.container.dataset.id = 'success';
+  return this.container;
+}
 }
