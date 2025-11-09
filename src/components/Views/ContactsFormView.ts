@@ -1,17 +1,18 @@
-// ContactsFormView.ts
+//ContactsFormView.ts
 import { FormView } from './FormView';
 
 export class ContactsFormView extends FormView {
+
+  private node: HTMLElement;
+
   constructor() {
     super('#contacts');
+    this.node = this.getTemplate();
+    this.initForm(this.node);
+    this.setupListeners(this.node);
   }
 
-  render(): HTMLElement {
-    const node = this.getTemplate();
-    this.initForm(node);
-
-    this.clearErrors();
-
+  private setupListeners(node: HTMLElement): void {
     const emailInput = node.querySelector('input[name="email"]') as HTMLInputElement | null;
     const phoneInput = node.querySelector('input[name="phone"]') as HTMLInputElement | null;
 
@@ -22,10 +23,6 @@ export class ContactsFormView extends FormView {
     }
 
     if (phoneInput) {
-      phoneInput.addEventListener('input', () =>
-        this.emit('buyer:change', { key: 'phone', value: phoneInput.value })
-      );
-
       const formatPhone = (value: string) => {
         const digits = value.replace(/\D/g, '');
         if (!digits) return '';
@@ -50,24 +47,61 @@ export class ContactsFormView extends FormView {
         return out;
       };
 
+      const setCaretByDigits = (input: HTMLInputElement, digitsBefore: number, formatted: string) => {
+        let count = 0;
+        let pos = 0;
+        while (pos < formatted.length && count < digitsBefore) {
+          if (/\d/.test(formatted[pos])) count++;
+          pos++;
+        }
+        input.setSelectionRange(pos, pos);
+      };
+
       const onPhoneInput = () => {
-        const start = phoneInput.selectionStart ?? phoneInput.value.length;
-        const formatted = formatPhone(phoneInput.value);
+        const raw = phoneInput.value;
+        const caretPos = phoneInput.selectionStart ?? raw.length;
+        const digitsBefore = raw.slice(0, caretPos).replace(/\D/g, '').length;
+        const formatted = formatPhone(raw);
         phoneInput.value = formatted;
+        setCaretByDigits(phoneInput, digitsBefore, formatted);
+        this.emit('buyer:change', { key: 'phone', value: formatted });
       };
 
       phoneInput.addEventListener('input', onPhoneInput);
       phoneInput.addEventListener('blur', onPhoneInput);
     }
-
-    return node;
   }
 
-  setValidationErrors(errors: Record<string, string>): void {
-    this.clearErrors();
+render(): HTMLElement {
+  this.clearErrors();
+  
+  const submitBtn = this.node.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+  if (submitBtn) {
+    submitBtn.disabled = true;
   }
+  
+  this.setValidationErrors({});
+  
+  return this.node;
+}
 
-  // validate возвращает пустой объект — локальная валидация не блокирует сабмит
+
+setValidationErrors(errors: Record<string, string>): void {
+  // Отобразить ошибки
+  this.setErrors(errors);
+
+  const emailInput = this.node.querySelector('input[name="email"]') as HTMLInputElement | null;
+  const phoneInput = this.node.querySelector('input[name="phone"]') as HTMLInputElement | null;
+  const emailValue = emailInput?.value.trim() || '';
+  const phoneValue = phoneInput?.value.trim() || '';
+  const submitBtn = this.node.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+  if (submitBtn) {
+    const hasErrors = Object.keys(errors).length > 0;
+    const fieldsFilled = emailValue !== '' && phoneValue !== '';
+    submitBtn.disabled = hasErrors || !fieldsFilled;
+  }
+}
+
   validate(_formData: Record<string, string>): Record<string, string> {
     return {};
   }
@@ -75,4 +109,20 @@ export class ContactsFormView extends FormView {
   protected onSubmit(data: Record<string, string>): void {
     this.emit('contacts:submit', { data });
   }
+
+  public clearForm(): void {
+    // очистить значения полей
+    const emailInput = this.node.querySelector('input[name="email"]') as HTMLInputElement | null;
+    const phoneInput = this.node.querySelector('input[name="phone"]') as HTMLInputElement | null;
+    if (emailInput) emailInput.value = '';
+    if (phoneInput) phoneInput.value = '';
+
+    this.clearErrors();
+    const submitBtn = this.node.querySelector('button[type="submit"]') as HTMLButtonElement | null;
+    if (submitBtn) submitBtn.disabled = true;
+
+    this.emit('buyer:change', { key: 'email', value: '' });
+    this.emit('buyer:change', { key: 'phone', value: '' });
+  }
+
 }

@@ -1,4 +1,4 @@
-// FormView.ts
+//FormView.ts
 import { EventEmitter } from '../base/Events';
 import { cloneTemplate } from '../../utils/utils';
 
@@ -75,4 +75,5 @@ export abstract class FormView extends EventEmitter {
   }
 
   abstract render(): HTMLElement;
+  abstract clearForm(): void;
 }

@@ -5,7 +5,7 @@ import { IProduct } from '../../types/index';
 import { CDN_URL } from '../../utils/constants';
 
 export class CatalogCardView extends EventEmitter {
-  private container: HTMLElement;
+  private container!: HTMLElement;
 
   render(product: IProduct): HTMLElement {
     this.container = cloneTemplate<HTMLElement>('#card-catalog');

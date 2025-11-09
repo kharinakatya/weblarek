@@ -5,9 +5,10 @@ export interface IApi {
     post<T extends object>(uri: string, data: object, method?: ApiPostMethods): Promise<T>;
 }
 
-type TPayment = 'card' | 'cash';
+export type TPayment = 'card' | 'cash';
 
 export interface IProduct {
+  name: string;
   id: string;
   description: string;
   image: string;
