@@ -1,4 +1,3 @@
-// main.ts
 import './scss/styles.scss';
 import { Api } from './components/base/Api';
 import { CommunicationLayer } from './components/Communication/CommunicationLayer';
@@ -15,7 +14,6 @@ import { SuccessView } from './components/Views/SuccessView';
 import { HeaderView } from './components/Views/HeaderView';
 import { PreviewCardView } from './components/Views/PreviewCardView';
 import { CatalogCardView } from './components/Views/CatalogCardView';
-import { BasketCardView } from './components/Views/BasketCardView';
 
 document.addEventListener('DOMContentLoaded', () => {
   const catalog = new ProductCatalog();
@@ -35,61 +33,63 @@ document.addEventListener('DOMContentLoaded', () => {
   const api = new Api(API_URL);
   const communicationLayer = new CommunicationLayer(api);
 
-basket.on('basket:changed', ({ items }) => {
-  headerView.updateCounter(items.length);
-  basketView.items = items.map((item, index) => {
-    const card = new BasketCardView();
-    const element = card.render(item, index);
-    card.on('basket:remove-item', ({ product }) => {
-      basket.removeItem(product);
-    });
-    return element;
+  let isBasketOpen = false;
+
+  const handleRemoveFromBasket = ({ product }) => {
+    console.log('Удаление товара:', product.id);
+    basket.removeItem(product);
+  };
+
+  const handleCardClick = ({ product }) => {
+    catalog.selectPreview(product);
+  };
+
+  basket.on('basket:changed', ({ items }) => {
+    console.log('Корзина изменилась, товаров:', items.length);
+    headerView.updateCounter(items.length);
+
+    if (isBasketOpen) {
+      modal.updateContent(basketView.render(basket.getItems(), basket.getTotalPrice()));
+    }
   });
-  basketView.total = basket.getTotalPrice();
+
+basketView.on('basket:order-click', () => {
+  console.log('main: basket order clicked — открываем форму заказа');
+  modal.open(orderFormView.render());
+  isBasketOpen = true;
 });
 
   catalog.on('catalog:changed', ({ items }) => {
     const cardViews = items.map(item => {
       const card = new CatalogCardView();
       card.render(item);
-      card.on('catalog:card-click', ({ product }) => {
-        catalog.selectPreview(product);
-      });
+      card.on('catalog:card-click', handleCardClick);
       return card;
     });
     catalogView.items = cardViews;
   });
 
   catalog.on('catalog:preview', ({ product }) => {
-  const isInBasket = basket.hasItem(product.id);
-  modal.open(previewView.render(product, isInBasket));
-});
-
-previewView.on('preview:add-to-basket', ({ product }) => {
-  basket.addItem(product);
-
-  const isInBasket = basket.hasItem(product.id);
-  modal.updateContent(previewView.render(product, isInBasket));
-});
-
-previewView.on('preview:remove-from-basket', ({ product }) => {
-  basket.removeItem(product);
-
-  const isInBasket = basket.hasItem(product.id);
-  modal.updateContent(previewView.render(product, isInBasket));
-});
-
-  basketView.on('basket:order-click', () => {
-    const content = orderFormView.render();
-    if (modal.isActive) {
-      modal.updateContent(content);
-    } else {
-      modal.open(content);
-    }
+    const isInBasket = basket.hasItem(product.id);
+    modal.open(previewView.render(product, isInBasket));
   });
 
+  previewView.on('preview:add-to-basket', ({ product }) => {
+    basket.addItem(product);
+    modal.close();
+  });
+
+  previewView.on('preview:remove-from-basket', ({ product }) => {
+    console.log('Удаление из превью:', product.id);
+    basket.removeItem(product);
+    modal.close();
+  });
+
+  basketView.on('basket:remove-item', handleRemoveFromBasket);
+
   headerView.on('header:basket-click', () => {
-    modal.open(basketView.render());
+    modal.open(basketView.render(basket.getItems(), basket.getTotalPrice()));
+    isBasketOpen = true;
   });
 
   orderFormView.on('buyer:change', ({ key, value }) => {
@@ -114,56 +114,56 @@ previewView.on('preview:remove-from-basket', ({ product }) => {
   });
 
   orderFormView.on('order:submit', ({ data }) => {
-    if (data.address) buyer.setAddress(data.address);
-    if (data.payment) buyer.setPayment(data.payment);
     modal.open(contactsFormView.render());
   });
 
   contactsFormView.on('contacts:submit', async () => {
-    buyer.setEmail(buyer.getData().email);
-    buyer.setPhone(buyer.getData().phone);
-
     const allItems = basket.getItems();
     const sellableItems = allItems.filter(i => {
       const p = typeof i.price === 'number' ? i.price : Number(i.price);
       return isFinite(p) && p > 0;
     });
+
     const sellableIds = sellableItems.map(i => i.id);
     const total = basket.getTotalPrice();
 
-    if (sellableIds.length === 0) {
-      modal.open(successView.render(0));
-      basket.clear();
-      buyer.clear();
-        orderFormView.clearForm();
-  contactsFormView.clearForm();
-      return;
-    }
-
+    const buyerData = buyer.getData();
     const orderData = {
-      payment: buyer.getData().payment,
-      email: buyer.getData().email,
-      phone: buyer.getData().phone,
-      address: buyer.getData().address,
+      payment: buyerData.payment,
+      email: buyerData.email,
+      phone: buyerData.phone,
+      address: buyerData.address,
       total: total,
       items: sellableIds
     };
 
-    try {
-      await communicationLayer.sendOrder(orderData);
-      modal.open(successView.render(orderData.total));
-      basket.clear();
-      buyer.clear();
-        orderFormView.clearForm();
-  contactsFormView.clearForm();
-    } catch (err) {
-      console.error('Ошибка отправки заказа:', err);
-    }
-  });
+  try {
+    console.log('Отправка заказа...', orderData);
+    await communicationLayer.sendOrder(orderData);
+    console.log('Заказ отправлен успешно, открываем success модалку');
 
+    const successElement = successView.render(orderData.total);
+    console.log('SuccessView.render() вернул:', successElement);
+    modal.open(successElement);
+    console.log('Success модалка открыта');
+
+    isBasketOpen = false;
+
+    basket.clear();
+    buyer.clear();
+    orderFormView.clearForm();
+    contactsFormView.clearForm();
+  } catch (err) {
+    console.error('Ошибка отправки заказа:', err);
+  }
+  });
+  
   successView.on('success:close', () => {
     modal.close();
+    isBasketOpen = false;
   });
+
+  basket.emit('basket:changed', { items: basket.getItems() });
 
   (async () => {
     try {

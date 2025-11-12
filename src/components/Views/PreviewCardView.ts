@@ -1,8 +1,7 @@
-// PreviewCardView.ts
 import { EventEmitter } from '../base/Events';
 import { cloneTemplate } from '../../utils/utils';
 import { IProduct } from '../../types/index';
-import { CDN_URL } from '../../utils/constants';
+import { CDN_URL, categoryMap } from '../../utils/constants';
 
 export class PreviewCardView extends EventEmitter {
   private container!: HTMLElement;
@@ -26,6 +25,9 @@ export class PreviewCardView extends EventEmitter {
     if (priceEl) priceEl.textContent = product.price !== null ? `${product.price} синапсов` : 'Бесплатно';
     if (imageEl) { imageEl.src = `${CDN_URL}${product.image}`; imageEl.alt = product.title; }
     if (categoryEl) categoryEl.textContent = product.category;
+
+    const modifier = categoryMap[product.category] ?? 'card__category_other';
+    categoryEl.className = `card__category ${modifier}`;
 
     this.setupButton(buttonEl, product, isInBasket);
 

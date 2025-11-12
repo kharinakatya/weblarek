@@ -1,4 +1,3 @@
-// CatalogView.ts
 import { EventEmitter } from '../base/Events';
 import { CatalogCardView } from './CatalogCardView';
 

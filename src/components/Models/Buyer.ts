@@ -1,4 +1,3 @@
-// Buyer.ts
 import { EventEmitter } from '../base/Events';
 import { IBuyer, TPayment } from '../../types/index';
 
@@ -8,7 +7,7 @@ export class Buyer extends EventEmitter {
   private _email: string = '';
   private _phone: string = '';
 
-  setData(key: string, value: any): void {
+  setData(key: string, value: TPayment | string): void {
     (this as any)[`_${key}`] = value;
     this.validate();
   }

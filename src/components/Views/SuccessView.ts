@@ -1,4 +1,3 @@
-// SuccessView.ts
 import { EventEmitter } from '../base/Events';
 import { cloneTemplate } from '../../utils/utils';
 
@@ -21,5 +20,5 @@ render(total: number): HTMLElement {
   if (this.descEl) this.descEl.textContent = `Списано ${total} синапсов`;
   this.container.dataset.id = 'success';
   return this.container;
-}
+  }
 }

@@ -1,6 +1,7 @@
-// CardView.ts
 import { EventEmitter } from '../base/Events'
 import { IProduct } from '../../types/index';
+import { ensureElement } from '../../utils/utils';
+import { CDN_URL, categoryMap } from '../../utils/constants'; 
 
 export class CardView extends EventEmitter {
   protected templateSelector: string;
@@ -11,28 +12,34 @@ export class CardView extends EventEmitter {
   }
 
   protected getTemplate(): HTMLElement {
-    const tmpl = document.querySelector(this.templateSelector) as HTMLTemplateElement | null;
-    if (!tmpl) throw new Error(`Template not found: ${this.templateSelector}`);
-
+    const tmpl = ensureElement<HTMLTemplateElement>(this.templateSelector);
     const el = tmpl.content.firstElementChild;
     if (!el) throw new Error(`Template ${this.templateSelector} has no root element`);
-
     return el.cloneNode(true) as HTMLElement;
   }
 
   fillCard(node: HTMLElement, product: IProduct) {
-    const titleEl = node.querySelector('.card__title') as HTMLElement | null;
-    if (titleEl) titleEl.textContent = (product.title ?? product.name ?? '').toString();
+    const titleEl = ensureElement<HTMLElement>('.card__title', node);
+    titleEl.textContent = (product.title ?? product.name ?? '').toString();
 
-    const priceEl = node.querySelector('.card__price') as HTMLElement | null;
-    if (priceEl) priceEl.textContent = product.price !== null ? `${product.price} синапсов` : 'Бесплатно';
+    const priceEl = ensureElement<HTMLElement>('.card__price', node);
+    priceEl.textContent = product.price !== null ? `${product.price} синапсов` : 'Бесплатно';
+
+    const categoryEl = node.querySelector('.card__category') as HTMLElement | null;
+    if (categoryEl) { 
+      categoryEl.textContent = product.category; 
+      const modifier = (categoryMap as Record<string, string>)[product.category] ?? 'card__category_other'; 
+      categoryEl.className = `card__category ${modifier}`; 
+    }
 
     const imgEl = node.querySelector('img') as HTMLImageElement | null;
-    if (imgEl && (product as any).image) imgEl.src = (product as any).image;
-
-    if (product && (product as any).id !== undefined) {
-      node.dataset.productId = String((product as any).id);
+    if (imgEl) { 
+      imgEl.src = `${CDN_URL}${product.image}`; 
+      imgEl.alt = product.title; 
     }
+
+    node.dataset.productId = product.id;
+    node.dataset.id = product.id;
 
     const addBtn = node.querySelector('.card__add-to-basket, .card__add') as HTMLElement | null;
     if (addBtn) {
@@ -48,6 +55,7 @@ export class CardView extends EventEmitter {
     this.fillCard(node, product);
 
     if (typeof index === 'number') {
+      // ind опционален (нет в некоторых шаблонах)
       const ind = node.querySelector('.card__index') as HTMLElement | null;
       if (ind) ind.textContent = String(index + 1);
     }

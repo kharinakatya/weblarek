@@ -1,4 +1,3 @@
-// ModalView.ts
 export class ModalView {
   private modalRoot: HTMLElement;
   private content: HTMLElement;

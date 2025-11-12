@@ -1,4 +1,3 @@
-// CommunicationLayer.ts
 import { IApi } from '../../types/index';
 import { IProduct } from '../../types/index';
 
@@ -8,9 +7,9 @@ export interface IOrderData {
   phone: string;
   address: string;
   total: number;
-  items: string[]; // id товаров
-}
+  items: string[];
 
+}
 export class CommunicationLayer {
   private api: IApi;
 

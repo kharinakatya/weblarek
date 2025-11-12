@@ -1,4 +1,3 @@
-//HeaderView.ts
 import { EventEmitter } from '../base/Events';
 
 export class HeaderView extends EventEmitter {

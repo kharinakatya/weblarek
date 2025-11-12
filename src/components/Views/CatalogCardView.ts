@@ -1,11 +1,10 @@
-// CatalogCardView.ts
 import { EventEmitter } from '../base/Events';
 import { cloneTemplate } from '../../utils/utils';
 import { IProduct } from '../../types/index';
-import { CDN_URL } from '../../utils/constants';
+import { CDN_URL, categoryMap } from '../../utils/constants';
 
 export class CatalogCardView extends EventEmitter {
-  private container!: HTMLElement;
+  private container: HTMLElement | undefined;
 
   render(product: IProduct): HTMLElement {
     this.container = cloneTemplate<HTMLElement>('#card-catalog');
@@ -17,17 +16,19 @@ export class CatalogCardView extends EventEmitter {
     
     if (titleEl) titleEl.textContent = product.title;
     if (priceEl) priceEl.textContent = product.price !== null ? `${product.price} синапсов` : 'Бесплатно';
+    
     if (imageEl) {
 
       imageEl.src = `${CDN_URL}${product.image}`;
       imageEl.alt = product.title;
     }
+    const modifier = categoryMap[product.category] ?? 'card__category_other';
+      categoryEl.className = `card__category ${modifier}`;
 
     if (categoryEl) categoryEl.textContent = product.category;
     this.container.addEventListener('click', () => {
       this.emit('catalog:card-click', { product });
     });
-    
     return this.container;
   }
 

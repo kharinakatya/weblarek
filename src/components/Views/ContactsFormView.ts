@@ -1,128 +1,128 @@
-//ContactsFormView.ts
+// ContactsFormView.ts
 import { FormView } from './FormView';
 
 export class ContactsFormView extends FormView {
-
   private node: HTMLElement;
+  private emailInput: HTMLInputElement;
+  private phoneInput: HTMLInputElement;
+  private submitButton: HTMLButtonElement;
 
   constructor() {
     super('#contacts');
     this.node = this.getTemplate();
     this.initForm(this.node);
-    this.setupListeners(this.node);
+
+    // Ищем элементы один раз и сохраняем (используем ensureElement для гарантии)
+    this.emailInput = this.ensureElement('input[name="email"]', this.node) as HTMLInputElement;
+    this.phoneInput = this.ensureElement('input[name="phone"]', this.node) as HTMLInputElement;
+    this.submitButton = this.ensureElement('button[type="submit"]', this.node) as HTMLButtonElement;
+
+    this.setupListeners();
   }
 
-  private setupListeners(node: HTMLElement): void {
-    const emailInput = node.querySelector('input[name="email"]') as HTMLInputElement | null;
-    const phoneInput = node.querySelector('input[name="phone"]') as HTMLInputElement | null;
+  private setupListeners(): void {
 
-    if (emailInput) {
-      emailInput.addEventListener('input', () =>
-        this.emit('buyer:change', { key: 'email', value: emailInput.value })
-      );
-    }
+    this.emailInput.addEventListener('input', () => 
+      this.emit('buyer:change', { key: 'email', value: this.emailInput.value })
+    );
 
-    if (phoneInput) {
-      const formatPhone = (value: string) => {
-        const digits = value.replace(/\D/g, '');
-        if (!digits) return '';
+    const formatPhone = (value: string): string => {
+      const digits = value.replace(/\D/g, '');
+      if (!digits) return '';
 
-        if (digits[0] === '7' || digits[0] === '8') {
-          const d = digits.replace(/^[78]/, '').slice(0, 10);
-          let out = '+7';
-          if (d.length > 0) out += ' ' + d.slice(0, 3);
-          if (d.length > 3) out += ' ' + d.slice(3, 6);
-          if (d.length > 6) out += '-' + d.slice(6, 8);
-          if (d.length > 8) out += '-' + d.slice(8, 10);
-          return out;
-        }
-
-        const cc = digits.slice(0, 3);
-        let rest = digits.slice(3);
-        let out = '+' + cc;
-        while (rest.length > 0) {
-          out += ' ' + rest.slice(0, 3);
-          rest = rest.slice(3);
-        }
+      if (digits[0] === '7' || digits[0] === '8') {
+        const d = digits.replace(/^[78]/, '').slice(0, 10);
+        let out = '+7';
+        if (d.length > 0) out += ' ' + d.slice(0, 3);
+        if (d.length > 3) out += ' ' + d.slice(3, 6);
+        if (d.length > 6) out += '-' + d.slice(6, 8);
+        if (d.length > 8) out += '-' + d.slice(8, 10);
         return out;
-      };
+      }
 
-      const setCaretByDigits = (input: HTMLInputElement, digitsBefore: number, formatted: string) => {
-        let count = 0;
-        let pos = 0;
-        while (pos < formatted.length && count < digitsBefore) {
-          if (/\d/.test(formatted[pos])) count++;
-          pos++;
-        }
-        input.setSelectionRange(pos, pos);
-      };
+      const cc = digits.slice(0, 3);
+      let rest = digits.slice(3);
+      let out = '+' + cc;
+      while (rest.length > 0) {
+        out += ' ' + rest.slice(0, 3);
+        rest = rest.slice(3);
+      }
+      return out;
+    };
 
-      const onPhoneInput = () => {
-        const raw = phoneInput.value;
-        const caretPos = phoneInput.selectionStart ?? raw.length;
-        const digitsBefore = raw.slice(0, caretPos).replace(/\D/g, '').length;
-        const formatted = formatPhone(raw);
-        phoneInput.value = formatted;
-        setCaretByDigits(phoneInput, digitsBefore, formatted);
-        this.emit('buyer:change', { key: 'phone', value: formatted });
-      };
+    const setCaretByDigits = (input: HTMLInputElement, digitsBefore: number, formatted: string): void => {
+      let count = 0;
+      let pos = 0;
+      while (pos < formatted.length && count < digitsBefore) {
+        if (/\d/.test(formatted[pos])) count++;
+        pos++;
+      }
+      input.setSelectionRange(pos, pos);
+    };
 
-      phoneInput.addEventListener('input', onPhoneInput);
-      phoneInput.addEventListener('blur', onPhoneInput);
+    const onPhoneInput = (): void => {
+      const raw = this.phoneInput.value;
+      const caretPos = this.phoneInput.selectionStart ?? raw.length;
+      const digitsBefore = raw.slice(0, caretPos).replace(/\D/g, '').length;
+      const formatted = formatPhone(raw);
+      this.phoneInput.value = formatted;
+      setCaretByDigits(this.phoneInput, digitsBefore, formatted);
+      this.emit('buyer:change', { key: 'phone', value: formatted });
+    };
+
+    this.phoneInput.addEventListener('input', onPhoneInput);
+    this.phoneInput.addEventListener('blur', onPhoneInput);
+  }
+
+  render(data?: { email?: string; phone?: string; errors?: Record<string, string> }): HTMLElement {
+
+    const formData = data || { email: '', phone: '', errors: {} };
+
+    this.emailInput.value = formData.email || '';
+    this.phoneInput.value = formData.phone || '';
+
+    this.clearErrors();
+    if (formData.errors) {
+      this.setErrors(formData.errors);
     }
+
+    this.updateSubmitButton(formData.errors);
+
+    return this.node;
   }
 
-render(): HTMLElement {
-  this.clearErrors();
-  
-  const submitBtn = this.node.querySelector('button[type="submit"]') as HTMLButtonElement | null;
-  if (submitBtn) {
-    submitBtn.disabled = true;
-  }
-  
-  this.setValidationErrors({});
-  
-  return this.node;
-}
-
-
-setValidationErrors(errors: Record<string, string>): void {
-  // Отобразить ошибки
-  this.setErrors(errors);
-
-  const emailInput = this.node.querySelector('input[name="email"]') as HTMLInputElement | null;
-  const phoneInput = this.node.querySelector('input[name="phone"]') as HTMLInputElement | null;
-  const emailValue = emailInput?.value.trim() || '';
-  const phoneValue = phoneInput?.value.trim() || '';
-  const submitBtn = this.node.querySelector('button[type="submit"]') as HTMLButtonElement | null;
-  if (submitBtn) {
-    const hasErrors = Object.keys(errors).length > 0;
+  private updateSubmitButton(errors?: Record<string, string>): void {
+    const emailValue = this.emailInput.value.trim();
+    const phoneValue = this.phoneInput.value.trim();
+    const hasErrors = errors ? Object.keys(errors).length > 0 : false;
     const fieldsFilled = emailValue !== '' && phoneValue !== '';
-    submitBtn.disabled = hasErrors || !fieldsFilled;
+    this.submitButton.disabled = hasErrors || !fieldsFilled;
   }
-}
 
-  validate(_formData: Record<string, string>): Record<string, string> {
-    return {};
+  setValidationErrors(errors: Record<string, string>): void {
+    this.setErrors(errors);
+    this.updateSubmitButton(errors);
+  }
+
+  validate(formData: Record<string, string>): Record<string, string> {
+    const errors: Record<string, string> = {};
+    const email = formData.email?.trim() || '';
+    const phone = formData.phone?.trim() || '';
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      errors.email = 'Введите корректный email';
+    }
+
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (!phone || phoneDigits.length < 10) {
+      errors.phone = 'Введите корректный номер телефона';
+    }
+
+    return errors;
   }
 
   protected onSubmit(data: Record<string, string>): void {
     this.emit('contacts:submit', { data });
   }
-
-  public clearForm(): void {
-    // очистить значения полей
-    const emailInput = this.node.querySelector('input[name="email"]') as HTMLInputElement | null;
-    const phoneInput = this.node.querySelector('input[name="phone"]') as HTMLInputElement | null;
-    if (emailInput) emailInput.value = '';
-    if (phoneInput) phoneInput.value = '';
-
-    this.clearErrors();
-    const submitBtn = this.node.querySelector('button[type="submit"]') as HTMLButtonElement | null;
-    if (submitBtn) submitBtn.disabled = true;
-
-    this.emit('buyer:change', { key: 'email', value: '' });
-    this.emit('buyer:change', { key: 'phone', value: '' });
-  }
-
 }
