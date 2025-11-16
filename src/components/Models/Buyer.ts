@@ -10,6 +10,7 @@ export class Buyer extends EventEmitter {
   setData(key: string, value: TPayment | string): void {
     (this as any)[`_${key}`] = value;
     this.validate();
+    this.emit('buyer:changed', this.getData());
   }
 
   validate(): void {
@@ -43,6 +44,7 @@ export class Buyer extends EventEmitter {
     this._email = '';
     this._phone = '';
     this.emit('buyer:changed', this.getData());
+    this.validate();
   }
 
   getData(): IBuyer {
@@ -53,4 +55,5 @@ export class Buyer extends EventEmitter {
       phone: this._phone
     };
   }
+
 }

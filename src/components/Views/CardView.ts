@@ -55,11 +55,11 @@ export class CardView extends EventEmitter {
     this.fillCard(node, product);
 
     if (typeof index === 'number') {
-      // ind опционален (нет в некоторых шаблонах)
       const ind = node.querySelector('.card__index') as HTMLElement | null;
       if (ind) ind.textContent = String(index + 1);
     }
 
     return node;
   }
+  
 }

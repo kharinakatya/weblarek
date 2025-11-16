@@ -9,8 +9,14 @@ export class CatalogView extends EventEmitter {
     this.container = container;
   }
 
-  set items(views: CatalogCardView[]) {
-    const elements = views.map(view => view.getElement());
-    this.container.replaceChildren(...elements);
-  }
+  set items(views: Array<any>) {
+  const elements = views.map(v => {
+    if (v && typeof v.getElement === 'function') {
+      return v.getElement();
+    }
+    return v as HTMLElement;
+  });
+  this.container.replaceChildren(...elements);
+}
+
 }

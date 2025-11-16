@@ -22,6 +22,7 @@ export class CatalogCardView extends EventEmitter {
       imageEl.src = `${CDN_URL}${product.image}`;
       imageEl.alt = product.title;
     }
+
     const modifier = categoryMap[product.category] ?? 'card__category_other';
       categoryEl.className = `card__category ${modifier}`;
 
@@ -35,4 +36,5 @@ export class CatalogCardView extends EventEmitter {
   getElement(): HTMLElement {
     return this.container;
   }
+  
 }

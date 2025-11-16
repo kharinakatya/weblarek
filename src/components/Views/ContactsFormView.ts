@@ -1,4 +1,3 @@
-// ContactsFormView.ts
 import { FormView } from './FormView';
 
 export class ContactsFormView extends FormView {
@@ -11,18 +10,15 @@ export class ContactsFormView extends FormView {
     super('#contacts');
     this.node = this.getTemplate();
     this.initForm(this.node);
-
-    // Ищем элементы один раз и сохраняем (используем ensureElement для гарантии)
     this.emailInput = this.ensureElement('input[name="email"]', this.node) as HTMLInputElement;
     this.phoneInput = this.ensureElement('input[name="phone"]', this.node) as HTMLInputElement;
     this.submitButton = this.ensureElement('button[type="submit"]', this.node) as HTMLButtonElement;
-
+    
     this.setupListeners();
   }
 
   private setupListeners(): void {
-
-    this.emailInput.addEventListener('input', () => 
+    this.emailInput.addEventListener('input', () =>
       this.emit('buyer:change', { key: 'email', value: this.emailInput.value })
     );
 
@@ -72,10 +68,14 @@ export class ContactsFormView extends FormView {
 
     this.phoneInput.addEventListener('input', onPhoneInput);
     this.phoneInput.addEventListener('blur', onPhoneInput);
+
+    this.node.addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      this.onSubmit();
+    });
   }
 
   render(data?: { email?: string; phone?: string; errors?: Record<string, string> }): HTMLElement {
-
     const formData = data || { email: '', phone: '', errors: {} };
 
     this.emailInput.value = formData.email || '';
@@ -92,11 +92,8 @@ export class ContactsFormView extends FormView {
   }
 
   private updateSubmitButton(errors?: Record<string, string>): void {
-    const emailValue = this.emailInput.value.trim();
-    const phoneValue = this.phoneInput.value.trim();
     const hasErrors = errors ? Object.keys(errors).length > 0 : false;
-    const fieldsFilled = emailValue !== '' && phoneValue !== '';
-    this.submitButton.disabled = hasErrors || !fieldsFilled;
+    this.submitButton.disabled = hasErrors;
   }
 
   setValidationErrors(errors: Record<string, string>): void {
@@ -105,24 +102,11 @@ export class ContactsFormView extends FormView {
   }
 
   validate(formData: Record<string, string>): Record<string, string> {
-    const errors: Record<string, string> = {};
-    const email = formData.email?.trim() || '';
-    const phone = formData.phone?.trim() || '';
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || !emailRegex.test(email)) {
-      errors.email = 'Введите корректный email';
-    }
-
-    const phoneDigits = phone.replace(/\D/g, '');
-    if (!phone || phoneDigits.length < 10) {
-      errors.phone = 'Введите корректный номер телефона';
-    }
-
-    return errors;
+  return {};
   }
 
-  protected onSubmit(data: Record<string, string>): void {
-    this.emit('contacts:submit', { data });
-  }
+protected onSubmit(_data?: Record<string, string>): void {
+  this.emit('contacts:submit');
+}
+
 }

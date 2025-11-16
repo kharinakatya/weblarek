@@ -22,4 +22,5 @@ export class ProductCatalog extends EventEmitter {
   getPreview(): IProduct | null {
     return this._preview;
   }
+
 }

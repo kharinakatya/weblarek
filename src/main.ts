@@ -44,26 +44,35 @@ document.addEventListener('DOMContentLoaded', () => {
     catalog.selectPreview(product);
   };
 
-  basket.on('basket:changed', ({ items }) => {
+  const updateBasketUI = (items) => {
     console.log('Корзина изменилась, товаров:', items.length);
+
     headerView.updateCounter(items.length);
 
+    basketView.render(items, basket.getTotalPrice());
     if (isBasketOpen) {
-      modal.updateContent(basketView.render(basket.getItems(), basket.getTotalPrice()));
+      modal.updateContent(basketView.render(items, basket.getTotalPrice()));
     }
+  };
+
+  basket.on('basket:changed', ({ items }) => {
+    updateBasketUI(items);
   });
 
-basketView.on('basket:order-click', () => {
-  console.log('main: basket order clicked — открываем форму заказа');
-  modal.open(orderFormView.render());
-  isBasketOpen = true;
-});
+
+  updateBasketUI(basket.getItems());
+
+  basketView.on('basket:order-click', () => {
+    console.log('main: basket order clicked — открываем форму заказа');
+    modal.open(orderFormView.render());
+    isBasketOpen = true;
+  });
 
   catalog.on('catalog:changed', ({ items }) => {
     const cardViews = items.map(item => {
       const card = new CatalogCardView();
       card.render(item);
-      card.on('catalog:card-click', handleCardClick);
+      card.on && card.on('catalog:card-click', handleCardClick);
       return card;
     });
     catalogView.items = cardViews;
@@ -113,7 +122,7 @@ basketView.on('basket:order-click', () => {
     contactsFormView.setValidationErrors(contactsErrors);
   });
 
-  orderFormView.on('order:submit', ({ data }) => {
+  orderFormView.on('order:submit', () => {
     modal.open(contactsFormView.render());
   });
 
@@ -137,33 +146,37 @@ basketView.on('basket:order-click', () => {
       items: sellableIds
     };
 
-  try {
-    console.log('Отправка заказа...', orderData);
-    await communicationLayer.sendOrder(orderData);
-    console.log('Заказ отправлен успешно, открываем success модалку');
+    try {
+      console.log('Отправка заказа...', orderData);
+      await communicationLayer.sendOrder(orderData);
+      console.log('Заказ отправлен успешно, открываем success модалку');
 
-    const successElement = successView.render(orderData.total);
-    console.log('SuccessView.render() вернул:', successElement);
-    modal.open(successElement);
-    console.log('Success модалка открыта');
+      const successElement = successView.render(orderData.total);
+      modal.open(successElement);
+      isBasketOpen = false;
 
-    isBasketOpen = false;
+      basket.clear();
+      buyer.clear();
+    } catch (err) {
+      console.error('Ошибка отправки заказа:', err);
+    }
 
-    basket.clear();
-    buyer.clear();
-    orderFormView.clearForm();
-    contactsFormView.clearForm();
-  } catch (err) {
-    console.error('Ошибка отправки заказа:', err);
-  }
+    try {
+      contactsFormView.clearForm();
+    } catch (e) {
+      console.warn('Не удалось очистить contactsFormView', e);
+    }
+    try {
+      orderFormView.clearForm();
+    } catch (e) {
+      console.warn('Не удалось очистить orderFormView', e);
+    }
   });
-  
+
   successView.on('success:close', () => {
     modal.close();
     isBasketOpen = false;
   });
-
-  basket.emit('basket:changed', { items: basket.getItems() });
 
   (async () => {
     try {

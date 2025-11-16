@@ -92,7 +92,6 @@ export abstract class FormView extends EventEmitter {
   public clearForm(): void {
     if (!this.node) return;
 
-    // native reset
     if (this.formElement) {
       try {
         this.formElement.reset();

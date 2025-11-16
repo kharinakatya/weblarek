@@ -34,6 +34,14 @@ export class BasketView extends EventEmitter {
     } catch {
       this.orderBtn = null;
     }
+
+    if (this.orderBtn) {
+      this.orderBtn.disabled = true;
+    }
+
+    if (this.orderBtn) {
+      this.orderBtn.disabled = true;
+    }
   }
 
   render(items?: IProduct[], total?: number): HTMLElement {
@@ -74,4 +82,5 @@ export class BasketView extends EventEmitter {
     this.totalEl.textContent = `${displayTotal} синапсов`;
     if (this.orderBtn) this.orderBtn.disabled = displayTotal === 0;
   }
+  
 }
