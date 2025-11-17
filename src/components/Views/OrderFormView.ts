@@ -64,7 +64,17 @@ export class OrderFormView extends FormView {
     this.submitBtn.disabled = true;
   }
 
-  render(): HTMLElement {
+  render(data?: { address?: string; payment?: TPayment | null; errors?: Record<string, string> }): HTMLElement {
+    if (data) {
+      this.addressInput.value = data.address || '';
+      this.setSelectedPayment(data.payment ?? null);
+      if (data.errors) {
+        this.setValidationErrors(data.errors);
+      } else {
+        this.clearErrors();
+        this.submitBtn.disabled = false && !data?.errors;
+      }
+    }
     return this.node;
   }
 
@@ -76,11 +86,7 @@ export class OrderFormView extends FormView {
     this.submitBtn.disabled = Object.keys(relevant).length > 0;
   }
 
-validate(formData: Record<string, string>): Record<string, string> {
-  return {};
-}
-
-protected onSubmit(_data?: Record<string, string>): void {
+  protected onSubmit(_data?: Record<string, string>): void {
   this.emit('order:submit');
 }
 
@@ -93,5 +99,5 @@ protected onSubmit(_data?: Record<string, string>): void {
       activeBtn.setAttribute('aria-pressed', 'true');
     }
   }
-  
+
 }

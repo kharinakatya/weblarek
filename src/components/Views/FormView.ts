@@ -82,6 +82,12 @@ export abstract class FormView extends EventEmitter {
     }
   }
 
+   validate(formData: Record<string, string>): Record<string, string> {
+    return {};
+  }
+
+  protected abstract onSubmit(data?: Record<string, string>): void;
+
   clearErrors(): void {
     if (this.errorsElement) this.errorsElement.textContent = '';
     if (this.submitButton) this.submitButton.disabled = false;

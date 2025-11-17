@@ -101,11 +101,7 @@ export class ContactsFormView extends FormView {
     this.updateSubmitButton(errors);
   }
 
-  validate(formData: Record<string, string>): Record<string, string> {
-  return {};
-  }
-
-protected onSubmit(_data?: Record<string, string>): void {
+  protected onSubmit(_data?: Record<string, string>): void {
   this.emit('contacts:submit');
 }
 

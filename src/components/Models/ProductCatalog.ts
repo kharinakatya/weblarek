@@ -1,3 +1,4 @@
+// ProductCatalog.ts
 import { EventEmitter } from '../base/Events';
 import { IProduct } from '../../types/index';
 

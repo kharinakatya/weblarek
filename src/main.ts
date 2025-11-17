@@ -14,6 +14,7 @@ import { SuccessView } from './components/Views/SuccessView';
 import { HeaderView } from './components/Views/HeaderView';
 import { PreviewCardView } from './components/Views/PreviewCardView';
 import { CatalogCardView } from './components/Views/CatalogCardView';
+import { BasketCardView } from './components/Views/BasketCardView';
 
 document.addEventListener('DOMContentLoaded', () => {
   const catalog = new ProductCatalog();
@@ -40,18 +41,25 @@ document.addEventListener('DOMContentLoaded', () => {
     basket.removeItem(product);
   };
 
-  const handleCardClick = ({ product }) => {
-    catalog.selectPreview(product);
-  };
-
   const updateBasketUI = (items) => {
     console.log('Корзина изменилась, товаров:', items.length);
 
     headerView.updateCounter(items.length);
 
-    basketView.render(items, basket.getTotalPrice());
+    const cardEls = items.map((item, index) => {
+      const card = new BasketCardView();
+      const cardEl = card.render(item, index);
+
+      card.on && card.on('basket:remove-item', ({ product }: { product: any }) => {
+        handleRemoveFromBasket({ product });
+      });
+      return cardEl;
+    });
+
+    basketView.items = cardEls;
+    basketView.total = basket.getTotalPrice();
     if (isBasketOpen) {
-      modal.updateContent(basketView.render(items, basket.getTotalPrice()));
+      modal.updateContent(basketView.render());
     }
   };
 
@@ -59,14 +67,23 @@ document.addEventListener('DOMContentLoaded', () => {
     updateBasketUI(items);
   });
 
-
   updateBasketUI(basket.getItems());
+
+  headerView.on('header:basket-click', () => {
+    modal.open(basketView.render());
+    isBasketOpen = true;
+  });
 
   basketView.on('basket:order-click', () => {
     console.log('main: basket order clicked — открываем форму заказа');
     modal.open(orderFormView.render());
     isBasketOpen = true;
   });
+
+const handleCardClick = ({ product }: { product: any }) => {
+  catalog.selectPreview(product);
+};
+
 
   catalog.on('catalog:changed', ({ items }) => {
     const cardViews = items.map(item => {
@@ -96,11 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   basketView.on('basket:remove-item', handleRemoveFromBasket);
 
-  headerView.on('header:basket-click', () => {
-    modal.open(basketView.render(basket.getItems(), basket.getTotalPrice()));
-    isBasketOpen = true;
-  });
-
   orderFormView.on('buyer:change', ({ key, value }) => {
     buyer.setData(key, value);
   });
@@ -120,6 +132,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     orderFormView.setValidationErrors(orderErrors);
     contactsFormView.setValidationErrors(contactsErrors);
+
+    const buyerData = buyer.getData();
+    orderFormView.render({ address: buyerData.address, payment: buyerData.payment, errors: orderErrors });
+    contactsFormView.render({ email: buyerData.email, phone: buyerData.phone, errors: contactsErrors });
   });
 
   orderFormView.on('order:submit', () => {
@@ -146,32 +162,33 @@ document.addEventListener('DOMContentLoaded', () => {
       items: sellableIds
     };
 
-    try {
-      console.log('Отправка заказа...', orderData);
-      await communicationLayer.sendOrder(orderData);
-      console.log('Заказ отправлен успешно, открываем success модалку');
+    try { 
+      console.log('Отправка заказа...', orderData); 
+      await communicationLayer.sendOrder(orderData); 
+      console.log('Заказ отправлен успешно, открываем success модалку'); 
+ 
+      const successElement = successView.render(orderData.total); 
+      modal.open(successElement); 
+      isBasketOpen = false; 
+ 
+      basket.clear(); 
+      buyer.clear(); 
+    } catch (err) { 
+      console.error('Ошибка отправки заказа:', err); 
+    } 
+ 
+    try { 
+      contactsFormView.clearForm(); 
+    } catch (e) { 
+      console.warn('Не удалось очистить contactsFormView', e); 
+    } 
+    try { 
+      orderFormView.clearForm(); 
+    } catch (e) { 
+      console.warn('Не удалось очистить orderFormView', e); 
+    } 
+  }); 
 
-      const successElement = successView.render(orderData.total);
-      modal.open(successElement);
-      isBasketOpen = false;
-
-      basket.clear();
-      buyer.clear();
-    } catch (err) {
-      console.error('Ошибка отправки заказа:', err);
-    }
-
-    try {
-      contactsFormView.clearForm();
-    } catch (e) {
-      console.warn('Не удалось очистить contactsFormView', e);
-    }
-    try {
-      orderFormView.clearForm();
-    } catch (e) {
-      console.warn('Не удалось очистить orderFormView', e);
-    }
-  });
 
   successView.on('success:close', () => {
     modal.close();
@@ -186,4 +203,5 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Ошибка:', error);
     }
   })();
+  
 });

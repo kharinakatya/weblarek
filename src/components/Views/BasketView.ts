@@ -12,8 +12,7 @@ export class BasketView extends EventEmitter {
   private listEl: HTMLElement;
   private totalEl: HTMLElement;
   private orderBtn: HTMLButtonElement | null;
-
-  private cardViews: BasketCardView[] = [];
+  private currentItems: HTMLElement[] = [];
 
   constructor() {
     super();
@@ -27,7 +26,6 @@ export class BasketView extends EventEmitter {
       this.orderBtn.addEventListener('click', (e: MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-  
         console.log('BasketView: order button clicked');
         this.emit('basket:order-click');
       });
@@ -38,49 +36,33 @@ export class BasketView extends EventEmitter {
     if (this.orderBtn) {
       this.orderBtn.disabled = true;
     }
+  }
 
-    if (this.orderBtn) {
-      this.orderBtn.disabled = true;
+  set items(items: HTMLElement[]) {
+    this.currentItems = items || [];
+    this.listEl.innerHTML = '';
+    if (this.currentItems.length === 0) {
+      const p = document.createElement('p');
+      p.textContent = 'Корзина пуста';
+      this.listEl.appendChild(p);
+      if (this.orderBtn) this.orderBtn.disabled = true;
+    } else {
+      this.currentItems.forEach(el => this.listEl.appendChild(el));
+      if (this.orderBtn) this.orderBtn.disabled = false;
     }
   }
 
-  render(items?: IProduct[], total?: number): HTMLElement {
-    items = items || [];
-    total = total || 0;
-
-    this.container.dataset.id = 'basket';
-
-    this.cardViews.forEach(view => view.offAll?.());
-    this.cardViews = [];
-
-    this.listEl.innerHTML = '';
-    if (items.length === 0) {
-      this.listEl.innerHTML = '<p>Корзина пуста</p>';
-      if (this.orderBtn) this.orderBtn.disabled = true;
-    } else {
-      items.forEach((item, index) => {
-        const cardView = new BasketCardView();
-        const cardEl = cardView.render(item, index);
-
-        cardView.on('basket:remove-item', (data: RemoveItemEventData) => {
-          this.emit('basket:remove-item', data);
-        });
-
-        this.cardViews.push(cardView);
-        this.listEl.appendChild(cardEl);
-      });
-      if (this.orderBtn) this.orderBtn.disabled = false;
-    }
-
-    const displayTotal = Math.max(0, total);
+  set total(total: number) {
+    const displayTotal = Math.max(0, total || 0);
     this.totalEl.textContent = `${displayTotal} синапсов`;
+    if (this.orderBtn) this.orderBtn.disabled = displayTotal === 0;
+  }
+
+  render(): HTMLElement {
     return this.container;
   }
 
   updateTotal(total: number): void {
-    const displayTotal = Math.max(0, total);
-    this.totalEl.textContent = `${displayTotal} синапсов`;
-    if (this.orderBtn) this.orderBtn.disabled = displayTotal === 0;
+    this.total = total;
   }
-  
 }
