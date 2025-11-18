@@ -42,7 +42,7 @@ export class Buyer extends EventEmitter {
     this._address = '';
     this._email = '';
     this._phone = '';
-    this.validate();
+    this.emit('order:validate', {});
   }
 
   getData(): IBuyer {
